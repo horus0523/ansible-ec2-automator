@@ -1,0 +1,33 @@
+# Ansible Vault passwords
+.vault_pass
+vault.pass
+*.vault_pass
+
+# SSH Keys
+*.pem
+*.key
+files/ssh_keys/*.pem
+files/ssh_keys/*.key
+
+# AWS Credentials
+.aws/
+aws-credentials
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Ansible
+*.retry
+group_vars/
+
+# OS
+.DS_Store
+Thumbs.db

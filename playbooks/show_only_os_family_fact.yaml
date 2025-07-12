@@ -1,0 +1,16 @@
+---
+- hosts: all
+  become: true
+
+  tasks:
+    - name: Show only os_family fact
+      ansible.builtin.command: "echo {{ ansible_facts['os_family'] }} | grep os_family || true"
+      register: os_family_output
+
+    - name: Print os_family output
+      ansible.builtin.debug:
+        msg: "{{ os_family_output.stdout }}"
+
+    #- name: Shutdown ubuntu instances only
+    #  ansible.builtin.command: /sbin/shutdown -t now
+    #  when: ansible_facts['os_family'] == "Debian"
