@@ -244,17 +244,17 @@ ssh-add ~/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem
 
 ```bash
 # manage-node-1 (Amazon Linux)
-ssh-copy-id -f "-o IdentityFile ~/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem" ec2-user@<MANAGE-NODE-1-IP>
+ssh-copy-id -f -i "$HOME/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pub" -o IdentityFile="$HOME/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem" ec2-user@<MANAGE-NODE-1-IP>
 ```
 
 ```bash
 # manage-node-2 (Ubuntu)
-ssh-copy-id -f "-o IdentityFile ~/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem" ubuntu@<MANAGE-NODE-2-IP>
+ssh-copy-id -f -i "$HOME/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pub" -o IdentityFile="$HOME/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem" ubuntu@<MANAGE-NODE-2-IP>
 ```
 
 ```bash
 # manage-node-3 (Ubuntu)
-ssh-copy-id -f "-o IdentityFile ~/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem" ubuntu@<MANAGE-NODE-3-IP>
+ssh-copy-id -f -i "$HOME/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pub" -o IdentityFile="$HOME/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem" ubuntu@<MANAGE-NODE-3-IP>
 ```
 
 ### 4.2 Test SSH Connectivity
@@ -263,15 +263,15 @@ ssh-copy-id -f "-o IdentityFile ~/ansible-ec2-automator/files/ssh_keys/my-ansibl
 
 ```bash
 # Test connection with private key (modify the path to the my-ansible-key.pem file)
-ssh -i "~/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem" ec2-user@<MANAGE-NODE-1-IP>
+ssh -i "$HOME/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem" ec2-user@<MANAGE-NODE-1-IP>
 ```
 
 ```bash
-ssh -i "~/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem" ubuntu@<MANAGE-NODE-2-IP>
+ssh -i "$HOME/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem" ubuntu@<MANAGE-NODE-2-IP>
 ```
 
 ```bash
-ssh -i "~/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem" ubuntu@<MANAGE-NODE-3-IP>
+ssh -i "$HOME/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem" ubuntu@<MANAGE-NODE-3-IP>
 ```
 
 #### Passwordless SSH Connection (after ssh-copy-id)
@@ -421,7 +421,7 @@ ansible-playbook playbooks/create_ec2_instances.yaml -vvv
 
 ```bash
 # Run specific tasks with tags
-ansible-playbook playbooks/create_ec2_instances.yaml --tags "environment"
+ansible-playbook playbooks/create_ec2_instances.yaml --tags "provision"
 ```
 
 ## Playbooks
