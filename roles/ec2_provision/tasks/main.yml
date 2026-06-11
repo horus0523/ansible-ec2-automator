@@ -56,17 +56,19 @@
 
 - name: Wait for SSH to be available (instances created)
   ansible.builtin.wait_for:
-    host: "{{ item.public_ip_address | default(item.public_dns_name, true) }}"
+    host: >-
+      {{ item.instances[0].public_ip_address |
+      default(item.instances[0].public_dns_name, true) }}
     port: 22
     search_regex: OpenSSH
     timeout: 300
     delay: 10
-  when: >
-    not ec2_provision_check_mode_skip | bool and
-    ec2_provision_result is changed
+  when:
+    - not ec2_provision_check_mode_skip | bool
+    - ec2_provision_result is changed
+    - item.changed | default(false)
+    - item.instances | default([]) | length > 0
   loop: "{{ ec2_provision_result.results | default([]) }}"
   register: ec2_provision_ssh_wait_result
   retries: "{{ ec2_provision_ssh_retries }}"
   delay: "{{ ec2_provision_ssh_delay }}"
-  notify:
-    - "Wait for SSH"
