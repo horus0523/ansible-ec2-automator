@@ -1,51 +1,52 @@
-# 🚀 Ansible EC2 Automator
+# Ansible EC2 Automator
 
 [![Ansible](https://img.shields.io/badge/Ansible-8.0%2B-red?style=flat-square&logo=ansible)](https://ansible.com)
 [![AWS](https://img.shields.io/badge/AWS-EC2-orange?style=flat-square&logo=amazon-aws)](https://aws.amazon.com/ec2/)
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue?style=flat-square&logo=python)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-**AWS EC2 automation with Ansible for infrastructure provisioning and management.**
+AWS EC2 automation with Ansible for infrastructure provisioning and management.
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [Overview](#-overview)
-- [Prerequisites](#-prerequisites)
-- [Quick Start](#-quick-start)
-- [Detailed Setup](#-detailed-setup)
-- [Instance Connection](#-instance-connection)
-- [Project Structure](#-project-structure)
-- [Usage](#-usage)
-- [Playbooks](#-playbooks)
-- [Security](#-security)
-- [Troubleshooting](#-troubleshooting)
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Detailed Setup](#detailed-setup)
+- [Instance Connection](#instance-connection)
+- [Acceptance Checks](#acceptance-checks)
+- [Project Structure](#project-structure)
+- [Usage](#usage)
+- [Playbooks](#playbooks)
+- [Security](#security)
+- [Troubleshooting](#troubleshooting)
 
-## 🎯 Overview
+## Overview
 
-This project provides a complete Ansible automation solution for:
+This project provides Ansible automation for:
 
-- 🏗️ **Provisioning** EC2 instances with different OS types
-- 🔧 **Managing** multiple instances simultaneously
-- 🔒 **Secure** credential handling with Ansible Vault
-- 📊 **Gathering** system information and facts
-- 🛑 **Shutting down** instances by OS family
+- **Provisioning** EC2 instances with different OS types
+- **Managing** multiple instances simultaneously
+- **Secure** credential handling with Ansible Vault
+- **Gathering** system information and facts
+- **Shutting down** instances by OS family
 
 ### Supported Features
 
-- ✅ Multi-OS support (Ubuntu, Amazon Linux)
-- ✅ Secure credential management
-- ✅ Dynamic inventory management
-- ✅ SSH key automation
-- ✅ Security group configuration
-- ✅ Fact gathering and system information
+- Multi-OS support (Ubuntu, Amazon Linux)
+- Secure credential management
+- Static inventory in `inventory/inventory.yaml`
+- SSH key automation
+- Security group configuration
+- Fact gathering and system information
 
-## 🔧 Prerequisites
+## Prerequisites
 
 ### AWS Requirements
 
-- AWS Account with administrative access
-- IAM User with `AmazonEC2FullAccess` policy
-- AWS Access Key and Secret Key
+- AWS account with permission to manage the EC2 resources used by these playbooks
+- AWS access key and secret key stored locally in an encrypted Ansible Vault file
+- SSH key pair and security group prepared for the target region
 
 ### Local System Requirements
 
@@ -53,9 +54,9 @@ This project provides a complete Ansible automation solution for:
 - **Operating System**: Linux
 - **Git**: For cloning the repository
 
-## ⚡ Quick Start
+## Quick Start
 
-```
+```bash
 # 1. Clone the repository
 git clone https://github.com/horus0523/ansible-ec2-automator
 cd ansible-ec2-automator
@@ -68,36 +69,39 @@ source venv/bin/activate
 pip install -r requirements.txt
 ansible-galaxy collection install amazon.aws
 
-# 4. Configure credentials (see detailed setup)
-# 5. Create EC2 instances
+# 4. Configure inventory, vault credentials, and SSH key material
+# 5. Run acceptance checks before touching AWS
+ansible-playbook playbooks/create_ec2_instances.yaml --syntax-check
+
+# 6. Create EC2 instances
 ansible-playbook playbooks/create_ec2_instances.yaml
 
-# 6. Configure SSH access (see instance connection)
-# 7. Run management playbooks
+# 7. Configure SSH access (see instance connection)
+# 8. Run management playbooks
 ```
 
-## 📚 Detailed Setup
+## Detailed Setup
 
 ### 1. AWS IAM User Setup
 
 #### 1.1 Create IAM User
 
-1. **Log in to AWS Console** with administrator privileges
+1. **Log in to AWS Console** with permission to create or update IAM users
 2. Navigate to **Services > IAM**
-3. Select **Users** → **Add user**
+3. Select **Users** -> **Add user**
 4. **Username**: `ansible-user` (or your preferred name)
 5. **Permissions**: Select **Attach policies directly**
-6. Search and attach: **`AmazonEC2FullAccess`**
+6. Attach a policy scoped to the EC2 actions and resources required for the target environment.
 7. **Create user** and note the username
 
 #### 1.2 Generate Access Keys
 
 1. Click on the newly created user
 2. Go to **Security credentials** tab
-3. In **Access keys** section → **Create access key**
-4. Select **Application running outside AWS** → **Next**
+3. In **Access keys** section -> **Create access key**
+4. Select **Application running outside AWS** -> **Next**
 5. **Create access key**
-6. **📋 Save the Access Key ID and Secret Access Key securely**
+6. Save the Access Key ID and Secret Access Key securely
 
 ### 2. Local Environment Setup
 
@@ -151,8 +155,10 @@ chmod 600 vault.pass
 
 #### 2.3 Configure AWS Credentials
 
+Create `group_vars/all/pass.yml` as an encrypted local file before running any AWS playbook.
+If your branch includes `group_vars/all/vault.example.yml`, copy that file first and then encrypt the local copy.
+
 ```bash
-# Create encrypted vault for AWS credentials
 ansible-vault create group_vars/all/pass.yml --encrypt-vault-id default
 ```
 
@@ -167,10 +173,12 @@ Save and close the editor.
 
 ### 3. AWS Infrastructure Setup
 
+The repository uses the static inventory at `inventory/inventory.yaml`. Replace the placeholder hosts with the public IPs for your environment and keep connection data such as `ansible_user` and `ansible_ssh_private_key_file` there.
+
 #### 3.1 Create SSH Key Pair
 
-1. **AWS Console** → **Services > EC2**
-2. **Network & Security** → **Key Pairs**
+1. **AWS Console** -> **Services > EC2**
+2. **Network & Security** -> **Key Pairs**
 3. **Create key pair**
 4. **Name**: `my-ansible-key`
 5. **Key pair type**: `ED25519`
@@ -186,14 +194,14 @@ chmod 400 ~/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem
 
 #### 3.2 Create Security Group
 
-1. **AWS Console** → **Services > EC2**
-2. **Network & Security** → **Security Groups**
+1. **AWS Console** -> **Services > EC2**
+2. **Network & Security** -> **Security Groups**
 3. **Create security group**
 4. **Name**: `ansible-sg-ssh`
 5. **Description**: "SSH access for Ansible managed instances"
 6. **Inbound rules**:
    - **Type**: SSH (22)
-   - **Source**: Your IP or `0.0.0.0/0` (for testing)
+   - **Source**: Your public IP or another intentionally restricted source
 7. **Create security group**
 
 #### 4. Provision EC2 Instances
@@ -206,7 +214,14 @@ cd ~/ansible-ec2-automator/
 ansible-playbook playbooks/create_ec2_instances.yaml
 ```
 
-## 🔌 Instance Connection
+Before running the playbook, verify this checklist:
+
+- `group_vars/all/pass.yml` exists and is encrypted.
+- `vault.pass` exists locally.
+- `files/ssh_keys/my-ansible-key.pem` exists and has `chmod 400`.
+- `inventory/inventory.yaml` has the managed hosts and users for your instances.
+
+## Instance Connection
 
 After creating the instances, you need to configure SSH access and test connectivity.
 
@@ -235,7 +250,6 @@ ssh-copy-id -f "-o IdentityFile ~/ansible-ec2-automator/files/ssh_keys/my-ansibl
 ```bash
 # manage-node-2 (Ubuntu)
 ssh-copy-id -f "-o IdentityFile ~/ansible-ec2-automator/files/ssh_keys/my-ansible-key.pem" ubuntu@<MANAGE-NODE-2-IP>
-
 ```
 
 ```bash
@@ -277,7 +291,7 @@ ssh ubuntu@<MANAGE-NODE-3-IP>
 
 ### 4.3 Update Inventory File
 
-Create or update `inventory/inventory.ini` with your instance IPs:
+Create or update `inventory/inventory.yaml` with your instance IPs:
 
 ```yaml
 all:
@@ -314,9 +328,20 @@ ansible debian_instances -m ping
 ansible redhat_instances -m ping
 ```
 
-## 📁 Project Structure
+## Acceptance Checks
 
-```
+Run acceptance checks before relying on AWS execution results or implementation detail sections.
+
+| Check | Command | Notes |
+|-------|---------|-------|
+| Syntax | `ansible-playbook playbooks/create_ec2_instances.yaml --syntax-check` | Parses the playbook without executing tasks. |
+| Check mode | `ansible-playbook playbooks/create_ec2_instances.yaml --check` | Requires valid AWS credentials. For playbooks that connect to managed hosts, it also requires a usable `inventory/inventory.yaml` and working host connectivity. Placeholder inventory entries are not enough for live checks. |
+| Connectivity | `ansible all -m ping` | Verifies the inventory and SSH configuration against reachable hosts. |
+| CI baseline | See `.github/workflows/ansible-ci.yml` when that workflow is part of the branch | The current automated checks cover `ansible-lint --offline` and Molecule scenario discovery; syntax, check mode, and connectivity still need to be run locally. |
+
+## Project Structure
+
+```text
 ansible-ec2-automator/
 ├── README.md                    # README file
 ├── requirements.txt             # Python dependencies
@@ -333,7 +358,7 @@ ansible-ec2-automator/
 ├──
 ├── group_vars/                  # Group variables
 │   └── all/
-│       └── pass.yml             # Encrypted AWS credentials (local only)
+│       └── pass.yml             # Encrypted credentials (local only)
 ├──
 ├── inventory/                   # Inventory files
 │   └── inventory.yaml           # Static inventory
@@ -343,7 +368,7 @@ ansible-ec2-automator/
         └── my-ansible-key.pem   # SSH private key (local only)
 ```
 
-## 🎮 Usage
+## Usage
 
 ### Basic Commands
 
@@ -399,9 +424,9 @@ ansible-playbook playbooks/create_ec2_instances.yaml -vvv
 ansible-playbook playbooks/create_ec2_instances.yaml --tags "environment"
 ```
 
-## 📖 Playbooks
+## Playbooks
 
-### 🏗️ create_ec2_instances.yaml
+### create_ec2_instances.yaml
 
 **Purpose**: Provisions 3 EC2 instances with different configurations
 
@@ -418,7 +443,7 @@ ansible-playbook playbooks/create_ec2_instances.yaml --tags "environment"
 - Instance tagging
 - SSH key configuration
 
-### 📊 show_gathered_facts.yaml
+### show_gathered_facts.yaml
 
 **Purpose**: Displays comprehensive system information from all managed instances
 
@@ -428,7 +453,7 @@ ansible-playbook playbooks/create_ec2_instances.yaml --tags "environment"
 - Compliance checking
 - Configuration validation
 
-### 🔍 show_only_os_family_fact.yaml
+### show_only_os_family_fact.yaml
 
 **Purpose**: Shows only OS family information (Debian, RedHat, etc.)
 
@@ -437,7 +462,7 @@ ansible-playbook playbooks/create_ec2_instances.yaml --tags "environment"
 - OS-specific task planning
 - Conditional playbook execution
 
-### 🛑 shutdown_debian_ec2_instances.yaml
+### shutdown_debian_ec2_instances.yaml
 
 **Purpose**: Safely shuts down Ubuntu/Debian instances
 
@@ -446,7 +471,7 @@ ansible-playbook playbooks/create_ec2_instances.yaml --tags "environment"
 - OS family verification
 - Conditional execution
 
-### 🛑 shutdown_redhat_ec2_instances.yaml
+### shutdown_redhat_ec2_instances.yaml
 
 **Purpose**: Safely shuts down Amazon Linux/RedHat instances
 
@@ -455,15 +480,18 @@ ansible-playbook playbooks/create_ec2_instances.yaml --tags "environment"
 - OS family verification
 - Conditional execution
 
-## 🔒 Security
+## Security
 
-### Best Practices Implemented
+### Repository Security Practices
 
-- ✅ **Encrypted Credentials**: AWS keys stored in Ansible Vault
-- ✅ **Local Secrets**: Vault password not committed to repository
-- ✅ **SSH Security**: Private keys excluded from Git
-- ✅ **Access Control**: IAM user with minimal required permissions
-- ✅ **Secure Defaults**: Host key checking disabled for automation
+- **Encrypted Credentials**: AWS keys stored in Ansible Vault
+- **Local Secrets**: Vault password not committed to repository
+- **SSH Security**: Private keys excluded from Git
+- **Secure Defaults**: Review `ansible.cfg` and your SSH options before automation against new hosts
+
+### Security Prerequisites
+
+- **Access Control Guidance**: Use an IAM user or role with only the permissions required for your environment
 
 ### Files NOT in Repository
 
@@ -476,13 +504,13 @@ group_vars/all/pass.yml      # Encrypted credentials (optional)
 
 ### Security Checklist
 
-- ✅ AWS IAM user has only necessary permissions
-- ✅ Vault password is strong and unique
-- ✅ SSH keys have correct permissions (400)
-- ✅ Security groups limit access to necessary ports
-- ✅ Production environments use restricted IP ranges
+- AWS IAM user has only necessary permissions
+- Vault password is strong and unique
+- SSH keys have correct permissions (400)
+- Security groups limit access to necessary ports
+- Production environments use restricted IP ranges
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -569,5 +597,3 @@ ansible localhost -m debug -a "var=ec2_secret_key"
 - [Ansible Documentation](https://docs.ansible.com/)
 - [AWS EC2 Documentation](https://docs.aws.amazon.com/ec2/)
 - [Amazon AWS Ansible Collection](https://docs.ansible.com/ansible/latest/collections/amazon/aws/)
-
----
