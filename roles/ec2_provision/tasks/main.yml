@@ -56,7 +56,7 @@
 
 - name: Wait for SSH to be available (instances created)
   ansible.builtin.wait_for:
-    host: "{{ item.public_ip_address | default(item.private_ip_address) }}"
+    host: "{{ item.public_ip_address | default(item.public_dns_name, true) }}"
     port: 22
     search_regex: OpenSSH
     timeout: 300
