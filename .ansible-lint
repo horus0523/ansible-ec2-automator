@@ -1,0 +1,9 @@
+---
+profile: basic
+offline: true
+
+skip_list:
+  - .git/
+  - .ansible/
+  - .molecule/
+  - .venv/

@@ -1,0 +1,56 @@
+name: Ansible CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.yml'
+      - '**.yaml'
+      - 'roles/**'
+      - 'playbooks/**'
+      - 'molecule/**'
+      - '.ansible-lint'
+      - 'ansible.cfg'
+      - 'ansible.cfg.d/**'
+      - 'requirements.txt'
+  pull_request:
+    paths:
+      - '**.yml'
+      - '**.yaml'
+      - 'roles/**'
+      - 'playbooks/**'
+      - 'molecule/**'
+      - '.ansible-lint'
+      - 'ansible.cfg'
+      - 'ansible.cfg.d/**'
+      - 'requirements.txt'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  static-validation:
+    name: Static validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt ansible-lint molecule 'molecule-plugins[docker]'
+
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install amazon.aws --force
+
+      - name: Run ansible-lint
+        run: ansible-lint --offline roles/ec2_provision molecule/default
+
+      - name: Check Molecule configuration
+        run: molecule list

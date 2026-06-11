@@ -1,0 +1,6 @@
+---
+# Copy this file to group_vars/all/pass.yml and encrypt it with:
+# ansible-vault encrypt group_vars/all/pass.yml --vault-password-file vault.pass
+
+ec2_access_key: "REPLACE_WITH_AWS_ACCESS_KEY_ID"
+ec2_secret_key: "REPLACE_WITH_AWS_SECRET_ACCESS_KEY"

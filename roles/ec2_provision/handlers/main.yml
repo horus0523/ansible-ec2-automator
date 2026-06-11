@@ -1,0 +1,23 @@
+---
+# handlers file for ec2_provision role
+
+- name: Wait for SSH
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: 22
+    search_regex: OpenSSH
+    timeout: 300
+  listen: "Wait for SSH"
+
+- name: Display provisioned instance info
+  ansible.builtin.debug:
+    msg: |
+      Instance {{ item.instance_ids[0] }} is available.
+      Public IP: {{ item.public_ip_address | default('N/A') }}
+      Name: {{ item.tags.Name | default(item.name) }}
+  loop: "{{ ec2_provision_result.results | default([]) }}"
+  when:
+    - ec2_provision_result is defined
+    - item.instance_ids is defined
+    - item.instance_ids | length > 0
+  listen: "Display instance info"
