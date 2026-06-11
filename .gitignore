@@ -26,7 +26,10 @@ venv/
 
 # Ansible
 *.retry
-group_vars/
+group_vars/*
+!group_vars/all/
+!group_vars/all/vault.example.yml
+.ansible/known_hosts
 
 # OS
 .DS_Store

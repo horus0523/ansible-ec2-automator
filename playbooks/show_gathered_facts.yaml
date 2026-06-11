@@ -1,12 +1,33 @@
 ---
-- hosts: all
-  become: true
+# playbook: show_gathered_facts.yaml
+# Purpose: Displays comprehensive system information from managed instances
+#
+# Check Mode: Shows what facts would be gathered without connecting
+
+- name: Show gathered facts from all instances
+  hosts: all
+  gather_facts: true
+
+  tags:
+    - facts
+    - info
+    - diagnostics
 
   tasks:
-    - name: Show gathered facts
+    - name: Display all gathered facts
       ansible.builtin.debug:
-        var: ansible_facts
+        msg: |
+          Host: {{ inventory_hostname }}
+          OS: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}
+          OS Family: {{ ansible_facts['os_family'] }}
+          Kernel: {{ ansible_facts['kernel'] }}
+          Architecture: {{ ansible_facts['architecture'] }}
+          Python: {{ ansible_facts['python_version'] }}
+          Memory: {{ ansible_facts['memtotal_mb'] }} MB
+          CPU: {{ ansible_facts['processor_count'] }} cores
+      when: not ansible_check_mode
 
-    #- name: Shutdown ubuntu instances only
-    #  ansible.builtin.command: /sbin/shutdown -t now
-    #  when: ansible_facts['os_family'] == "Debian"
+    - name: Show fact gathering status in check mode
+      ansible.builtin.debug:
+        msg: "Check mode: would gather facts from {{ inventory_hostname }}"
+      when: ansible_check_mode

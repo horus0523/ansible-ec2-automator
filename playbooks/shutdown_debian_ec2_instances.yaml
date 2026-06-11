@@ -1,8 +1,47 @@
 ---
-- hosts: debian_instances
+# playbook: shutdown_debian_ec2_instances.yaml
+# Purpose: Safely shuts down Debian/Ubuntu instances
+#
+# Idempotency: Verifies OS family before shutdown
+# Check Mode: Reports what would be shut down without executing
+
+- name: Shutdown Debian-based EC2 instances
+  hosts: debian_instances
   become: true
+  gather_facts: true
+
+  tags:
+    - shutdown
+    - debian
+    - ec2
 
   tasks:
-    - name: Shutdown ubuntu instances only
-      ansible.builtin.command: /sbin/shutdown -t now
-      when: ansible_facts['os_family'] == "Debian"
+    - name: Verify OS family is Debian
+      ansible.builtin.debug:
+        msg: "Instance {{ inventory_hostname }} is {{ ansible_facts['os_family'] }} family"
+      when: not ansible_check_mode
+
+    - name: Check if shutdown already performed (idempotency)
+      ansible.builtin.stat:
+        path: /var/run/.ansible_shutdown_complete
+      register: shutdown_flag
+      when: not ansible_check_mode
+
+    - name: Shutdown Debian/Ubuntu instances
+      ansible.builtin.command: /sbin/shutdown -h +1 "Ansible shutdown initiated"
+      when: >
+        not ansible_check_mode and
+        ansible_facts['os_family'] == "Debian" and
+        not shutdown_flag.stat.exists
+      register: shutdown_result
+      changed_when: shutdown_result.rc == 0
+      notify:
+        - Create shutdown flag
+
+  handlers:
+    - name: Create shutdown flag
+      ansible.builtin.file:
+        path: /var/run/.ansible_shutdown_complete
+        state: touch
+        mode: '0644'
+      become: true

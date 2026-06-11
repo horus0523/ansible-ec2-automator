@@ -1,26 +1,144 @@
 ---
-- hosts: localhost
+# playbook: create_ec2_instances.yaml
+# Purpose: Provisions EC2 instances with idempotency and check mode support
+#
+# Idempotency: Uses checks to detect existing instances before provisioning
+# Check Mode: Skips actual AWS API calls when running with --check
+
+- name: Create EC2 instances for Ansible management
+  hosts: localhost
   connection: local
-  vars_files:
-    - ../group_vars/all/pass.yml # ruta to your vault file with AWS credentials
+  gather_facts: false
+
+  tags:
+    - provision
+    - ec2
+    - base
+
+  pre_tasks:
+    - name: Load role defaults
+      ansible.builtin.include_vars:
+        file: ../roles/ec2_provision/defaults/main.yml
+
+    - name: Load role variables
+      ansible.builtin.include_vars:
+        file: ../roles/ec2_provision/vars/main.yml
+
+    - name: Ensure repo-local known_hosts directory exists
+      ansible.builtin.file:
+        path: ./.ansible
+        state: directory
+        mode: "0700"
+
+    - name: Check encrypted vault file exists
+      ansible.builtin.stat:
+        path: "{{ ec2_provision_vault_file }}"
+      register: ec2_vault_file_status
+
+    - name: Fail when vault file is missing
+      ansible.builtin.fail:
+        msg: >-
+          Missing {{ ec2_provision_vault_file }}. Copy {{ ec2_provision_vault_example_file }} to
+          group_vars/all/pass.yml, encrypt it with ansible-vault, and add your
+          AWS credentials before running this playbook.
+      when: not ec2_vault_file_status.stat.exists
+
+    - name: Load encrypted AWS credentials
+      ansible.builtin.include_vars:
+        file: "{{ ec2_provision_vault_file }}"
+      no_log: true
+
+    - name: Check SSH private key exists
+      ansible.builtin.stat:
+        path: "{{ ec2_provision_private_key_file }}"
+      register: ec2_private_key_status
+
+    - name: Validate local prerequisites before AWS calls
+      ansible.builtin.assert:
+        that:
+          - ec2_access_key is defined
+          - ec2_access_key | trim | length > 0
+          - ec2_secret_key is defined
+          - ec2_secret_key | trim | length > 0
+          - ec2_private_key_status.stat.exists
+          - ec2_provision_key_name | trim | length > 0
+          - ec2_provision_security_group | trim | length > 0
+          - ec2_provision_region | trim | length > 0
+          - ec2_provision_instances | length > 0
+          - (ec2_provision_instances | map(attribute='image') | list | length) == (ec2_provision_instances | length)
+          - >-
+            (ec2_provision_instances | map(attribute='image') |
+            select('match', ec2_provision_ami_id_pattern) | list | length)
+            == (ec2_provision_instances | length)
+        fail_msg: >-
+          Missing AWS credentials, SSH key, or valid AMI mappings. Read
+          README.md, create group_vars/all/pass.yml from the example, verify
+          files/ssh_keys/my-ansible-key.pem exists, and update AMI IDs for your
+          target region before provisioning.
 
   tasks:
-    - name: Create EC2 instances
+    - name: Check for existing EC2 instances by name tag
+      amazon.aws.ec2_instance_info:
+        filters:
+          tag:Name: "{{ item.name }}"
+          instance-state-name: ["running", "stopped", "pending"]
+        region: "{{ ec2_provision_region }}"
+        aws_access_key: "{{ ec2_access_key }}"
+        aws_secret_key: "{{ ec2_secret_key }}"
+      loop: "{{ ec2_provision_instances }}"
+      register: existing_instances
+      when: not ansible_check_mode
+
+    - name: Set fact for instance existence
+      ansible.builtin.set_fact:
+        instances_exist: "{{ existing_instances.results | map(attribute='instances') | list | length > 0 }}"
+      when: not ansible_check_mode
+
+    - name: Display existing instances found
+      ansible.builtin.debug:
+        msg: "Found existing instances: {{ existing_instances.results | json_query('[*].instances[*].instance_id') }}"
+      when: not ansible_check_mode and instances_exist | default(false)
+
+    - name: Provision EC2 instances (idempotent - skips if exists)
       amazon.aws.ec2_instance:
         name: "{{ item.name }}"
-        key_name: "my-ansible-key" # Replace with your key pair name
-        instance_type: t2.micro
-        security_group: ansible-sg-ssh # Replace with your security group name
-        region: us-east-1
-        aws_access_key: "{{ec2_access_key}}" # From vault as defined
-        aws_secret_key: "{{ec2_secret_key}}" # From vault as defined
+        key_name: "{{ ec2_provision_key_name }}"
+        instance_type: "{{ ec2_provision_instance_type }}"
+        security_group: "{{ ec2_provision_security_group }}"
+        region: "{{ ec2_provision_region }}"
+        aws_access_key: "{{ ec2_access_key }}"
+        aws_secret_key: "{{ ec2_secret_key }}"
         network_interfaces:
           - assign_public_ip: true
-            device_index: 0 # First interface (eth0 in Linux)
+            device_index: 0
         image_id: "{{ item.image }}"
         tags:
           environment: "{{ item.name }}"
-      loop:
-        - { image: "ami-05ffe3c48a9991133", name: "manage-node-1" } # Update AMI ID according
-        - { image: "ami-020cba7c55df1f615", name: "manage-node-2" } # to your account
-        - { image: "ami-020cba7c55df1f615", name: "manage-node-3" }
+          ManagedBy: Ansible
+      loop: "{{ ec2_provision_instances }}"
+      when: >
+        not ansible_check_mode and
+        (existing_instances.results[loop_index].instances | length == 0)
+      loop_control:
+        index_var: loop_index
+      register: ec2_creation
+
+    - name: Wait for SSH on newly created instances
+      ansible.builtin.wait_for:
+        host: "{{ item.tags.Name }}"
+        port: 22
+        search_regex: OpenSSH
+        timeout: 300
+        delay: 10
+      when: not ansible_check_mode and ec2_creation.changed | bool
+      loop: "{{ ec2_creation.results | default([]) }}"
+      register: ssh_wait
+      retries: 5
+      delay: 30
+
+    - name: Show creation results
+      ansible.builtin.debug:
+        msg: |
+          Created {{ ec2_creation.changed | ternary('new', 'existing') }} instances.
+          Changes: {{ ec2_creation.changed | ternary(ec2_creation.results | length, 0) }}
+      when: not ansible_check_mode
