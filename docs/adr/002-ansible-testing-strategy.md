@@ -30,7 +30,9 @@ We use Molecule for role testing and ansible-lint for code quality:
 
 - name: Wait for SSH only for newly created instances
   ansible.builtin.wait_for:
-    host: "{{ item.instances[0].public_ip_address }}"
+    host: >-
+      {{ item.instances[0].public_ip_address |
+      default(item.instances[0].public_dns_name, true) }}
   when:
     - ec2_provision_result is changed
     - item.changed | default(false)
