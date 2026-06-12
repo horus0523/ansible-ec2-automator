@@ -11,8 +11,8 @@ Playbooks manage EC2 instances and must be tested before CI deployment.
 We use Molecule for role testing and ansible-lint for code quality:
 
 ### ansible-lint
-- Runs on all playbooks in CI: `ansible-lint --recursive`
-- Enforces idempotency with `creates`/`removes` directives
+- CI runs `ansible-lint --offline roles/ec2_provision molecule/default`
+- Checks the role and Molecule scenario that ship with the repository
 - Validates YAML structure and naming conventions
 
 ### Molecule (future)
@@ -22,11 +22,19 @@ We use Molecule for role testing and ansible-lint for code quality:
 
 ### Playbook Idempotency
 ```yaml
-- name: Create EC2 instances
-  ec2_instance:
-    ...
-  creates: "/tmp/ec2_created"  # Prevents re-running if already done
-  when: ec2_state == 'present'
+- name: Provision EC2 instances only when lookup returned no match
+  amazon.aws.ec2_instance:
+    name: "{{ item.name }}"
+    state: running
+  when: ec2_provision_instances_found.results[loop_index].instances | length == 0
+
+- name: Wait for SSH only for newly created instances
+  ansible.builtin.wait_for:
+    host: "{{ item.instances[0].public_ip_address }}"
+  when:
+    - ec2_provision_result is changed
+    - item.changed | default(false)
+    - item.instances | default([]) | length > 0
 ```
 
 ## Consequences
