@@ -1,16 +1,25 @@
 ---
-- hosts: all
-  become: true
+# playbook: show_only_os_family_fact.yaml
+# Purpose: Shows only OS family information for conditional playbook execution
+#
+# Check Mode: Shows what OS family would be reported
+
+- name: Show only OS family fact
+  hosts: all
+  gather_facts: true
+
+  tags:
+    - facts
+    - os-family
+    - diagnostics
 
   tasks:
-    - name: Show only os_family fact
-      ansible.builtin.command: "echo {{ ansible_facts['os_family'] }} | grep os_family || true"
-      register: os_family_output
-
-    - name: Print os_family output
+    - name: Display OS family
       ansible.builtin.debug:
-        msg: "{{ os_family_output.stdout }}"
+        msg: "{{ inventory_hostname }} belongs to OS family: {{ ansible_facts['os_family'] }}"
+      when: not ansible_check_mode
 
-    #- name: Shutdown ubuntu instances only
-    #  ansible.builtin.command: /sbin/shutdown -t now
-    #  when: ansible_facts['os_family'] == "Debian"
+    - name: OS family check mode report
+      ansible.builtin.debug:
+        msg: "Check mode: would report OS family for {{ inventory_hostname }}"
+      when: ansible_check_mode

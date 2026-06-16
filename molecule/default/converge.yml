@@ -1,0 +1,18 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: false
+
+  vars:
+    ec2_access_key: testing
+    ec2_secret_key: testing
+    ec2_provision_check_mode_skip: true
+    ec2_provision_region: us-east-1
+    ec2_provision_instance_type: t2.micro
+    ec2_provision_security_group: ansible-sg-ssh
+    ec2_provision_key_name: my-ansible-key
+
+  tasks:
+    - name: Include EC2 provisioning role in offline smoke mode
+      ansible.builtin.include_role:
+        name: ec2_provision

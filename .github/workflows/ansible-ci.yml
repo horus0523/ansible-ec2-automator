@@ -1,0 +1,69 @@
+name: Ansible CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.yml'
+      - '**.yaml'
+      - 'roles/**'
+      - 'playbooks/**'
+      - 'molecule/**'
+      - '.ansible-lint'
+      - 'ansible.cfg'
+      - 'ansible.cfg.d/**'
+      - 'requirements.txt'
+  pull_request:
+    paths:
+      - '**.yml'
+      - '**.yaml'
+      - 'roles/**'
+      - 'playbooks/**'
+      - 'molecule/**'
+      - '.ansible-lint'
+      - 'ansible.cfg'
+      - 'ansible.cfg.d/**'
+      - 'requirements.txt'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+permissions:
+  contents: read
+
+jobs:
+  static-validation:
+    name: Static validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt ansible-lint molecule 'molecule-plugins[docker]'
+
+      - name: Install Ansible collections
+        run: ansible-galaxy collection install amazon.aws --force
+
+      - name: Run ansible-lint
+        run: ansible-lint --offline playbooks roles/ec2_provision molecule/default
+
+      - name: Run playbook syntax checks
+        run: |
+          ansible-playbook --syntax-check playbooks/create_ec2_instances.yaml
+          ansible-playbook --syntax-check playbooks/show_gathered_facts.yaml
+          ansible-playbook --syntax-check playbooks/show_only_os_family_fact.yaml
+          ansible-playbook --syntax-check playbooks/shutdown_debian_ec2_instances.yaml
+          ansible-playbook --syntax-check playbooks/shutdown_redhat_ec2_instances.yaml
+
+      - name: Run Molecule syntax validation
+        run: molecule syntax

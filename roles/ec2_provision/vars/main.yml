@@ -1,0 +1,28 @@
+---
+# vars file for ec2_provision role
+
+# AMI IDs by instance name.
+# These are example mappings for the lab; verify they still exist in your target
+# region before provisioning and replace them if AWS rotates the images.
+ec2_provision_ami_mapping:
+  manage-node-1: ami-05ffe3c48a9991133  # Amazon Linux
+  manage-node-2: ami-020cba7c55df1f615  # Ubuntu
+  manage-node-3: ami-020cba7c55df1f615  # Ubuntu
+
+# Instance configuration
+ec2_provision_instances:
+  - name: manage-node-1
+    image: "{{ ec2_provision_ami_mapping['manage-node-1'] }}"
+    tags:
+      environment: dev
+      Name: manage-node-1
+  - name: manage-node-2
+    image: "{{ ec2_provision_ami_mapping['manage-node-2'] }}"
+    tags:
+      environment: qa
+      Name: manage-node-2
+  - name: manage-node-3
+    image: "{{ ec2_provision_ami_mapping['manage-node-3'] }}"
+    tags:
+      environment: qa
+      Name: manage-node-3

@@ -1,0 +1,74 @@
+---
+- name: Validate EC2 provisioning inputs
+  ansible.builtin.assert:
+    that:
+      - ec2_access_key is defined
+      - ec2_access_key | string | length > 0
+      - ec2_secret_key is defined
+      - ec2_secret_key | string | length > 0
+      - ec2_provision_region | string | length > 0
+      - ec2_provision_key_name | string | length > 0
+      - ec2_provision_security_group | string | length > 0
+      - ec2_provision_instances | length > 0
+    fail_msg: "EC2 provisioning inputs are incomplete."
+
+- name: Report offline smoke mode
+  ansible.builtin.debug:
+    msg: "Offline smoke mode enabled; AWS EC2 calls are skipped."
+  when: ec2_provision_check_mode_skip | bool
+
+- name: Check if EC2 instances exist
+  amazon.aws.ec2_instance_info:
+    filters:
+      tag:Name: "{{ item.name }}"
+      instance-state-name: ["running", "stopped", "pending"]
+    region: "{{ ec2_provision_region }}"
+    aws_access_key: "{{ ec2_access_key }}"
+    aws_secret_key: "{{ ec2_secret_key }}"
+  register: ec2_provision_instances_found
+  when: not ec2_provision_check_mode_skip | bool
+  loop: "{{ ec2_provision_instances }}"
+
+- name: Provision EC2 instances
+  amazon.aws.ec2_instance:
+    name: "{{ item.name }}"
+    key_name: "{{ ec2_provision_key_name }}"
+    instance_type: "{{ ec2_provision_instance_type }}"
+    security_group: "{{ ec2_provision_security_group }}"
+    region: "{{ ec2_provision_region }}"
+    aws_access_key: "{{ ec2_access_key }}"
+    aws_secret_key: "{{ ec2_secret_key }}"
+    network_interfaces:
+      - assign_public_ip: true
+        device_index: 0
+    image_id: "{{ item.image }}"
+    tags: "{{ ec2_provision_default_tags | combine(item.tags) }}"
+    state: running
+  when: >
+    not ec2_provision_check_mode_skip | bool and
+    ec2_provision_instances_found.results[loop_index].instances | length == 0
+  loop: "{{ ec2_provision_instances }}"
+  loop_control:
+    index_var: loop_index
+  register: ec2_provision_result
+  notify:
+    - "Display instance info"
+
+- name: Wait for SSH to be available (instances created)
+  ansible.builtin.wait_for:
+    host: >-
+      {{ item.instances[0].public_ip_address |
+      default(item.instances[0].public_dns_name, true) }}
+    port: 22
+    search_regex: OpenSSH
+    timeout: 300
+    delay: 10
+  when:
+    - not ec2_provision_check_mode_skip | bool
+    - ec2_provision_result is changed
+    - item.changed | default(false)
+    - item.instances | default([]) | length > 0
+  loop: "{{ ec2_provision_result.results | default([]) }}"
+  register: ec2_provision_ssh_wait_result
+  retries: "{{ ec2_provision_ssh_retries }}"
+  delay: "{{ ec2_provision_ssh_delay }}"

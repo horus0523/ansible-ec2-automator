@@ -1,0 +1,26 @@
+---
+dependency:
+  name: galaxy
+scenario:
+  test_sequence:
+    - destroy
+    - syntax
+    - create
+    - converge
+    - idempotence
+    - verify
+    - destroy
+driver:
+  name: docker
+platforms:
+  - name: ansible-ec2-automator
+    image: docker.io/python:3.11-slim
+    pre_build_image: true
+    command: sleep infinity
+    tty: true
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/roles
+verifier:
+  name: ansible
