@@ -3,27 +3,7 @@ name: Ansible CI
 on:
   push:
     branches: [main]
-    paths:
-      - '**.yml'
-      - '**.yaml'
-      - 'roles/**'
-      - 'playbooks/**'
-      - 'molecule/**'
-      - '.ansible-lint'
-      - 'ansible.cfg'
-      - 'ansible.cfg.d/**'
-      - 'requirements.txt'
   pull_request:
-    paths:
-      - '**.yml'
-      - '**.yaml'
-      - 'roles/**'
-      - 'playbooks/**'
-      - 'molecule/**'
-      - '.ansible-lint'
-      - 'ansible.cfg'
-      - 'ansible.cfg.d/**'
-      - 'requirements.txt'
 
 env:
   PYTHON_VERSION: '3.11'
