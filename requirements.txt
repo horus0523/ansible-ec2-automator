@@ -2,7 +2,7 @@
 # Install with: pip install -r requirements.txt
 
 # Core Ansible package
-ansible>=8.0.0
+ansible>=14.0.0
 ansible-core
 
 # AWS SDK for Python - required for AWS modules in Ansible
