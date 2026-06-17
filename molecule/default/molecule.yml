@@ -14,7 +14,7 @@ driver:
   name: docker
 platforms:
   - name: ansible-ec2-automator
-    image: docker.io/python:3.11-slim
+    image: docker.io/python:3.12-slim
     pre_build_image: true
     command: sleep infinity
     tty: true

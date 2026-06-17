@@ -2,7 +2,7 @@
 
 [![Ansible](https://img.shields.io/badge/Ansible-8.0%2B-red?style=flat-square&logo=ansible)](https://ansible.com)
 [![AWS](https://img.shields.io/badge/AWS-EC2-orange?style=flat-square&logo=amazon-aws)](https://aws.amazon.com/ec2/)
-[![Python](https://img.shields.io/badge/Python-3.8%2B-blue?style=flat-square&logo=python)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.12%2B-blue?style=flat-square&logo=python)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
 AWS EC2 automation with Ansible for infrastructure provisioning and management.
@@ -50,7 +50,7 @@ This project provides Ansible automation for:
 
 ### Local System Requirements
 
-- **Python**: 3.8 or higher
+- **Python**: 3.12 or higher
 - **Operating System**: Linux
 - **Git**: For cloning the repository
 
@@ -62,7 +62,7 @@ git clone https://github.com/horus0523/ansible-ec2-automator
 cd ansible-ec2-automator
 
 # 2. Set up virtual environment
-python3 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate
 
 # 3. Install dependencies
@@ -121,7 +121,7 @@ sudo apt install python3.12-venv
 
 ```bash
 # Create and activate virtual environment
-python3 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate
 ```
 
